@@ -56,3 +56,29 @@ class Event:
     source: str
     description: str
     evidence_id: str = ""
+
+
+def case_to_dict(case: Case) -> dict:
+    """Convert a Case (and everything inside it) to plain dictionaries."""
+    return asdict(case)
+
+
+def case_from_dict(data: dict) -> Case:
+    """Rebuild a Case from a dictionary, or raise StorageError."""
+    try:
+        return Case(
+            case_id=data["case_id"],
+            title=data["title"],
+            investigator=data["investigator"],
+            created_at=data["created_at"],
+            evidence={
+                key: EvidenceItem(**value)
+                for key, value in data.get("evidence", {}).items()
+            },
+            custody_log=[
+                CustodyEntry(**entry) for entry in data.get("custody_log", [])
+            ],
+            events=[Event(**event) for event in data.get("events", [])],
+        )
+    except (KeyError, TypeError, AttributeError) as err:
+        raise StorageError(f"Case data is missing or has wrong fields: {err}") from err
