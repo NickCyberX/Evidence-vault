@@ -33,3 +33,26 @@ class EvidenceItem:
     file_path: str
     sha256: str
     added_at: str
+
+
+@dataclass
+class CustodyEntry:
+    """One line of the chain of custody, linked to the line before it."""
+
+    entry_id: int
+    evidence_id: str
+    action: str
+    actor: str
+    timestamp: str
+    previous_hash: str
+    entry_hash: str
+
+
+@dataclass
+class Event:
+    """One timeline event. The timestamp is always normalised UTC text."""
+
+    timestamp: str
+    source: str
+    description: str
+    evidence_id: str = ""
