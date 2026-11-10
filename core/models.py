@@ -20,3 +20,16 @@ class Case:
     evidence: Dict[str, EvidenceItem] = field(default_factory=dict)
     custody_log: List[CustodyEntry] = field(default_factory=list)
     events: List[Event] = field(default_factory=list)
+
+
+@dataclass
+class EvidenceItem:
+    """One piece of evidence and the SHA-256 fingerprint taken at intake."""
+
+    evidence_id: str
+    description: str
+    source: str
+    collector: str
+    file_path: str
+    sha256: str
+    added_at: str
