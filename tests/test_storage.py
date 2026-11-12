@@ -47,3 +47,27 @@ class TestSaveLoad(unittest.TestCase):
             original = make_case()
             save_case(original, path)
             self.assertEqual(load_case(path), original)
+
+
+class TestBadFiles(unittest.TestCase):
+    """Loading files that are missing or broken."""
+
+    def test_missing_file(self):
+        with self.assertRaises(StorageError):
+            load_case("this_file_does_not_exist.json")
+
+    def test_corrupted_json(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "bad.json")
+            with open(path, "w", encoding="utf-8") as file:
+                file.write("{ this is not json")
+            with self.assertRaises(StorageError):
+                load_case(path)
+
+    def test_json_with_missing_fields(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "wrong.json")
+            with open(path, "w", encoding="utf-8") as file:
+                file.write('{"title": "no id here"}')
+            with self.assertRaises(StorageError):
+                load_case(path)
