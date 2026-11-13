@@ -50,3 +50,17 @@ class TestChain(unittest.TestCase):
     def test_unknown_evidence_rejected(self):
         with self.assertRaises(EvidenceError):
             append_entry(self.case, "E-99", "VIEWED", "Alice")
+
+    def test_altered_entry_is_found(self):
+        self.add_three_entries()
+        self.case.custody_log[1].actor = "Mallory"
+        result = verify_chain(self.case)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.broken_index, 1)
+
+    def test_removed_entry_is_found(self):
+        self.add_three_entries()
+        del self.case.custody_log[1]
+        result = verify_chain(self.case)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.broken_index, 1)
