@@ -72,3 +72,23 @@ def register_and_log(
     )
     append_entry(case, item.evidence_id, "REGISTERED", item.collector)
     return item
+
+
+def verify_chain(case: Case) -> ChainResult:
+    """Walk the chain and report the first entry that does not check out."""
+    previous = GENESIS_HASH
+    for index, entry in enumerate(case.custody_log):
+        if entry.previous_hash != previous:
+            return ChainResult(
+                False,
+                index,
+                f"Entry {entry.entry_id} does not link to the one before it.",
+            )
+        if compute_entry_hash(entry) != entry.entry_hash:
+            return ChainResult(
+                False, index, f"Entry {entry.entry_id} has been altered."
+            )
+        previous = entry.entry_hash
+    return ChainResult(
+        True, None, f"Custody chain intact ({len(case.custody_log)} entries)."
+    )
