@@ -36,3 +36,15 @@ class TestHashFile(unittest.TestCase):
             path = self.write(folder, "")
             self.assertEqual(hash_file(path), hashlib.sha256(b"").hexdigest())
 
+
+class TestMissingFile(unittest.TestCase):
+    """Hashing a file that does not exist."""
+
+    def test_missing_file_raises_clear_error(self):
+        with self.assertRaises(EvidenceError):
+            hash_file("no_such_file.bin")
+
+    def test_folder_instead_of_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(EvidenceError):
+                hash_file(folder)
