@@ -92,3 +92,24 @@ def verify_chain(case: Case) -> ChainResult:
     return ChainResult(
         True, None, f"Custody chain intact ({len(case.custody_log)} entries)."
     )
+
+
+def verify_evidence_files(case: Case) -> List[str]:
+    """Re-hash every evidence file and list the ones that no longer match."""
+    problems = []
+    for item in case.evidence.values():
+        try:
+            current = hash_file(item.file_path)
+        except EvidenceError:
+            problems.append(f"{item.evidence_id}: file is missing or unreadable.")
+            continue
+        if current != item.sha256:
+            problems.append(f"{item.evidence_id}: file has been modified.")
+    return problems
+
+
+def check_integrity(case: Case) -> Tuple[bool, List[str]]:
+    """Run both checks and return (everything_ok, messages)."""
+    result = verify_chain(case)
+    problems = verify_evidence_files(case)
+    return result.ok and not problems, [result.message] + problems
