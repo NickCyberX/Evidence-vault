@@ -40,3 +40,23 @@ def register_evidence(
     item.sha256 = hash_file(item.file_path)
     case.evidence[clean_id] = item
     return item
+
+
+def get_evidence(case: Case, evidence_id: str) -> EvidenceItem:
+    """Look up one evidence item by its ID."""
+    try:
+        return case.evidence[(evidence_id or "").strip()]
+    except KeyError:
+        raise EvidenceError(f"No evidence with ID '{evidence_id}'.") from None
+
+
+def edit_evidence_description(case: Case, evidence_id: str, new_text: str) -> None:
+    """Change the description of an evidence item."""
+    item = get_evidence(case, evidence_id)
+    item.description = require_text(new_text, "Description")
+
+
+def delete_evidence(case: Case, evidence_id: str) -> None:
+    """Remove an evidence item from the case."""
+    item = get_evidence(case, evidence_id)
+    del case.evidence[item.evidence_id]
