@@ -64,3 +64,24 @@ class TestChain(unittest.TestCase):
         result = verify_chain(self.case)
         self.assertFalse(result.ok)
         self.assertEqual(result.broken_index, 1)
+
+    def test_unmodified_file_passes(self):
+        self.add_three_entries()
+        self.assertEqual(verify_evidence_files(self.case), [])
+        self.assertTrue(check_integrity(self.case)[0])
+
+    def test_modified_file_is_found(self):
+        self.add_three_entries()
+        with open(self.path, "a", encoding="utf-8") as file:
+            file.write(" tampered")
+        problems = verify_evidence_files(self.case)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("modified", problems[0])
+        self.assertFalse(check_integrity(self.case)[0])
+
+    def test_deleted_file_is_found(self):
+        self.add_three_entries()
+        os.remove(self.path)
+        problems = verify_evidence_files(self.case)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("missing", problems[0])
