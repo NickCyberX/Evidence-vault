@@ -68,3 +68,12 @@ def import_text_log(
         raise StorageError(f"Could not read '{path}': {err}") from err
     events.sort(key=lambda event: event.timestamp)
     return events, skipped
+
+
+def import_events(
+    path: str, source_name: str, evidence_id: str = ""
+) -> Tuple[List[Event], int]:
+    """Pick the CSV or text importer from the file extension."""
+    if path.lower().endswith(".csv"):
+        return import_csv_events(path, source_name, evidence_id)
+    return import_text_log(path, source_name, evidence_id)
