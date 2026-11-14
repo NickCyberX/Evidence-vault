@@ -83,3 +83,17 @@ class TimelineSearcher:
             self._events = events
             self._count = len(events)
         return keyword_search(events, self._index, text)
+
+
+def filter_events(
+    events: List[Event], source: Optional[str] = None, evidence_id: Optional[str] = None
+) -> List[Event]:
+    """Keep events matching the source and/or evidence ID (blank = ignore)."""
+    source = (source or "").strip().lower()
+    evidence_id = (evidence_id or "").strip().lower()
+    return [
+        event
+        for event in events
+        if (not source or event.source.lower() == source)
+        and (not evidence_id or event.evidence_id.lower() == evidence_id)
+    ]
