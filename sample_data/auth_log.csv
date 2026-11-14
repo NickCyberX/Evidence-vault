@@ -1,0 +1,6 @@
+timestamp,description
+2026-11-03T09:00:12+00:00,Failed login for user alice from 192.0.2.10
+2026-11-03T09:00:45+00:00,Failed login for user alice from 192.0.2.10
+2026-11-03T09:01:20+00:00,Successful login for user alice from 192.0.2.10
+2026-11-03T09:15:02+01:00,Password changed for user alice
+2026-11-03T10:30:00Z,Logout for user alice
