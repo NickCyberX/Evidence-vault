@@ -38,3 +38,18 @@ def events_in_window(events: List[Event], start: str, end: str) -> List[Event]:
         found.append(events[index])
         index += 1
     return found
+
+
+def tokenize(text: str) -> List[str]:
+    """Split text into lowercase words."""
+    return re.findall(r"\w+", text.lower())
+
+
+def build_index(events: List[Event]) -> Dict[str, Set[int]]:
+    """Inverted index: word -> set of positions of events containing it."""
+    index: Dict[str, Set[int]] = {}
+    for position, event in enumerate(events):
+        text = f"{event.description} {event.source} {event.evidence_id}"
+        for word in tokenize(text):
+            index.setdefault(word, set()).add(position)
+    return index
