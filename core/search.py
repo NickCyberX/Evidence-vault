@@ -53,3 +53,33 @@ def build_index(events: List[Event]) -> Dict[str, Set[int]]:
         for word in tokenize(text):
             index.setdefault(word, set()).add(position)
     return index
+
+
+def keyword_search(
+    events: List[Event], index: Dict[str, Set[int]], text: str
+) -> List[Event]:
+    """Return events containing every word in the search text."""
+    words = tokenize(text)
+    if not words:
+        raise ValidationError("Enter at least one search word.")
+    matches = set(index.get(words[0], set()))
+    for word in words[1:]:
+        matches &= index.get(word, set())
+    return [events[position] for position in sorted(matches)]
+
+
+class TimelineSearcher:
+    """Keeps an inverted index and rebuilds it only when the events change."""
+
+    def __init__(self) -> None:
+        self._events: Optional[List[Event]] = None
+        self._count = -1
+        self._index: Dict[str, Set[int]] = {}
+
+    def search(self, events: List[Event], text: str) -> List[Event]:
+        """Search the given events, rebuilding the index if needed."""
+        if self._events is not events or self._count != len(events):
+            self._index = build_index(events)
+            self._events = events
+            self._count = len(events)
+        return keyword_search(events, self._index, text)
