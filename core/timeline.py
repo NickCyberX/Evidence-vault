@@ -77,3 +77,15 @@ def import_events(
     if path.lower().endswith(".csv"):
         return import_csv_events(path, source_name, evidence_id)
     return import_text_log(path, source_name, evidence_id)
+
+
+def merge_timelines(timelines: List[List[Event]]) -> List[Event]:
+    """Merge several time-sorted lists into one sorted list (k-way merge)."""
+    return list(heapq.merge(*timelines, key=lambda event: event.timestamp))
+
+
+def add_events(case: Case, new_events: List[Event]) -> int:
+    """Merge new events into the case timeline. Returns how many were added."""
+    ordered = sorted(new_events, key=lambda event: event.timestamp)
+    case.events = merge_timelines([case.events, ordered])
+    return len(ordered)
