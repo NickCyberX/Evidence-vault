@@ -24,3 +24,17 @@ def find_first_at_or_after(events: List[Event], timestamp: str) -> int:
         else:
             high = middle
     return low
+
+
+def events_in_window(events: List[Event], start: str, end: str) -> List[Event]:
+    """Return events from start to end, both included."""
+    start_stamp = parse_timestamp(start)
+    end_stamp = parse_timestamp(end)
+    if start_stamp > end_stamp:
+        raise ValidationError("The start time must not be after the end time.")
+    index = find_first_at_or_after(events, start_stamp)
+    found = []
+    while index < len(events) and events[index].timestamp <= end_stamp:
+        found.append(events[index])
+        index += 1
+    return found
