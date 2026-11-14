@@ -97,3 +97,22 @@ def filter_events(
         if (not source or event.source.lower() == source)
         and (not evidence_id or event.evidence_id.lower() == evidence_id)
     ]
+
+
+def cluster_events(events: List[Event], max_gap_seconds: int) -> List[List[Event]]:
+    """Group sorted events into bursts where neighbours are close in time."""
+    if max_gap_seconds < 0:
+        raise ValidationError("The gap must not be negative.")
+    clusters: List[List[Event]] = []
+    previous_time = None
+    for event in events:
+        current = datetime.strptime(event.timestamp, TIMESTAMP_FORMAT)
+        if (
+            previous_time is not None
+            and (current - previous_time).total_seconds() <= max_gap_seconds
+        ):
+            clusters[-1].append(event)
+        else:
+            clusters.append([event])
+        previous_time = current
+    return clusters
