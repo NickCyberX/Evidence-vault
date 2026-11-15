@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Files the application creates while you test it
+*.json
+timeline.csv
