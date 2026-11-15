@@ -90,6 +90,46 @@ def action_show_case():
 ACTIONS["1"] = ("Create a new case", action_create_case)
 ACTIONS["2"] = ("Show case details", action_show_case)
 
+
+def action_register_evidence():
+    """Menu: register an evidence file."""
+    case = need_case()
+    evidence_id = ask("Evidence ID (letters, digits, hyphens): ")
+    description = ask("Description: ")
+    source = ask("Source (where it came from): ")
+    collector = ask("Collector (your name): ")
+    file_path = ask("Path to the evidence file: ")
+    item = chain.register_and_log(
+        case, evidence_id, description, source, collector, file_path
+    )
+    print(f"Registered {item.evidence_id}. SHA-256: {item.sha256}")
+
+
+def action_edit_evidence():
+    """Menu: change an evidence description."""
+    case = need_case()
+    evidence_id = ask("Evidence ID to edit: ")
+    new_text = ask("New description: ")
+    case_manager.edit_evidence_description(case, evidence_id, new_text)
+    print("Description updated.")
+
+
+def action_delete_evidence():
+    """Menu: delete an evidence item after confirmation."""
+    case = need_case()
+    evidence_id = ask("Evidence ID to delete: ")
+    case_manager.get_evidence(case, evidence_id)
+    if ask("Type YES to confirm deletion: ") == "YES":
+        case_manager.delete_evidence(case, evidence_id)
+        print("Evidence deleted.")
+    else:
+        print("Nothing was deleted.")
+
+
+ACTIONS["3"] = ("Register evidence", action_register_evidence)
+ACTIONS["4"] = ("Edit evidence description", action_edit_evidence)
+ACTIONS["5"] = ("Delete evidence", action_delete_evidence)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
