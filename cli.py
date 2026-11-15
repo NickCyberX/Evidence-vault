@@ -64,6 +64,32 @@ def print_events(events):
         )
 
 
+def action_create_case():
+    """Menu: create a new case."""
+    case_id = ask("Case ID: ")
+    title = ask("Title: ")
+    investigator = ask("Investigator: ")
+    SESSION.case = case_manager.create_case(case_id, title, investigator)
+    SESSION.path = None
+    print(f"Created case {SESSION.case.case_id}.")
+
+
+def action_show_case():
+    """Menu: show details of the open case."""
+    case = need_case()
+    print(f"Case {case.case_id}: {case.title}")
+    print(f"Investigator: {case.investigator}   Created: {case.created_at}")
+    print(f"Evidence items: {len(case.evidence)}")
+    for item in sorted(case.evidence.values(), key=lambda i: i.evidence_id):
+        print(f"  {item.evidence_id}: {item.description} ({item.file_path})")
+        print(f"      SHA-256: {item.sha256}")
+    print(f"Custody entries: {len(case.custody_log)}")
+    print(f"Timeline events: {len(case.events)}")
+
+
+ACTIONS["1"] = ("Create a new case", action_create_case)
+ACTIONS["2"] = ("Show case details", action_show_case)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
