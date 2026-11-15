@@ -130,6 +130,28 @@ ACTIONS["3"] = ("Register evidence", action_register_evidence)
 ACTIONS["4"] = ("Edit evidence description", action_edit_evidence)
 ACTIONS["5"] = ("Delete evidence", action_delete_evidence)
 
+
+def action_custody():
+    """Menu: record a custody action."""
+    case = need_case()
+    evidence_id = ask("Evidence ID (leave blank for the whole case): ")
+    action = ask("Action (for example TRANSFERRED): ")
+    actor = ask("Who did it: ")
+    entry = chain.append_entry(case, evidence_id, action, actor)
+    print(f"Recorded custody entry {entry.entry_id}.")
+
+
+def action_verify():
+    """Menu: check the custody chain and the evidence files."""
+    ok, messages = chain.check_integrity(need_case())
+    print("INTEGRITY: PASS" if ok else "INTEGRITY: FAIL")
+    for message in messages:
+        print(f"  - {message}")
+
+
+ACTIONS["6"] = ("Record a custody action", action_custody)
+ACTIONS["7"] = ("Verify integrity", action_verify)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
