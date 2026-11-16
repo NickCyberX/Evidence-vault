@@ -152,6 +152,28 @@ def action_verify():
 ACTIONS["6"] = ("Record a custody action", action_custody)
 ACTIONS["7"] = ("Verify integrity", action_verify)
 
+
+def action_import():
+    """Menu: import events from a CSV or text log."""
+    case = need_case()
+    path = ask("Path to the log file (.csv or text): ")
+    source = ask("Name for this source (for example auth): ")
+    evidence_id = ask("Evidence ID it came from (blank for none): ")
+    if evidence_id:
+        case_manager.get_evidence(case, evidence_id)
+    events, skipped = timeline.import_events(path, source, evidence_id)
+    added = timeline.add_events(case, events)
+    print(f"Imported {added} events. Skipped {skipped} bad lines.")
+
+
+def action_timeline():
+    """Menu: show the whole timeline."""
+    print_events(need_case().events)
+
+
+ACTIONS["8"] = ("Import events from a file", action_import)
+ACTIONS["9"] = ("View timeline", action_timeline)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
