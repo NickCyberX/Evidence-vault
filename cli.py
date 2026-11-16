@@ -174,6 +174,43 @@ def action_timeline():
 ACTIONS["8"] = ("Import events from a file", action_import)
 ACTIONS["9"] = ("View timeline", action_timeline)
 
+
+def action_search():
+    """Menu: keyword search."""
+    case = need_case()
+    print_events(SESSION.searcher.search(case.events, ask("Search words: ")))
+
+
+def action_filter():
+    """Menu: filter by source and/or evidence ID."""
+    case = need_case()
+    source = ask("Source (blank for any): ")
+    evidence_id = ask("Evidence ID (blank for any): ")
+    print_events(search.filter_events(case.events, source, evidence_id))
+
+
+def action_window():
+    """Menu: show events between two times."""
+    case = need_case()
+    start = ask("Start (for example 2026-11-03T09:00:00Z): ")
+    end = ask("End   (for example 2026-11-03T10:00:00Z): ")
+    print_events(search.events_in_window(case.events, start, end))
+
+
+def action_clusters():
+    """Menu: group events that happen close together."""
+    case = need_case()
+    gap = ask_int("Maximum gap in seconds between events in a group: ")
+    for number, group in enumerate(search.cluster_events(case.events, gap), start=1):
+        print(f"\n--- Group {number}: {len(group)} events ---")
+        print_events(group)
+
+
+ACTIONS["10"] = ("Search by keyword", action_search)
+ACTIONS["11"] = ("Filter by source / evidence ID", action_filter)
+ACTIONS["12"] = ("Show events in a time window", action_window)
+ACTIONS["13"] = ("Group events into bursts", action_clusters)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
