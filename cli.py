@@ -211,6 +211,28 @@ ACTIONS["11"] = ("Filter by source / evidence ID", action_filter)
 ACTIONS["12"] = ("Show events in a time window", action_window)
 ACTIONS["13"] = ("Group events into bursts", action_clusters)
 
+
+def action_save():
+    """Menu: save the case to a JSON file."""
+    case = need_case()
+    default = SESSION.path or f"{case.case_id}.json"
+    path = ask(f"File to save to [{default}]: ") or default
+    storage.save_case(case, path)
+    SESSION.path = path
+    print(f"Saved to {path}.")
+
+
+def action_load():
+    """Menu: load a case from a JSON file."""
+    path = ask("File to load: ")
+    SESSION.case = storage.load_case(path)
+    SESSION.path = path
+    print(f"Loaded case {SESSION.case.case_id}.")
+
+
+ACTIONS["14"] = ("Save case to a file", action_save)
+ACTIONS["15"] = ("Load case from a file", action_load)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
