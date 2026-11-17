@@ -241,18 +241,23 @@ def main():
     print("=== Evidence Vault (text version) ===")
     while True:
         print_menu()
-        choice = ask("Choose an option: ")
-        if choice == "0":
-            print("Goodbye.")
-            break
-        action = ACTIONS.get(choice)
-        if action is None:
-            print("That is not a menu option.")
-            continue
         try:
+            choice = ask("Choose an option: ")
+            if choice == "0":
+                print("Goodbye.")
+                break
+            action = ACTIONS.get(choice)
+            if action is None:
+                print("That is not a menu option.")
+                continue
             action[1]()
         except VaultError as err:
             print(f"Error: {err}")
+        except (EOFError, KeyboardInterrupt):
+            print("\nInput closed. Goodbye.")
+            break
+        except Exception as err:  # last safety net so the program never crashes
+            print(f"Unexpected problem: {type(err).__name__}: {err}")
 
 
 if __name__ == "__main__":
