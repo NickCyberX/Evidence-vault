@@ -59,6 +59,7 @@ class VaultApp:
         self.status = ttk.Label(root, text="Ready", anchor="w")
         self.status.pack(fill="x", padx=10, pady=5)
         # --- NEW PANEL CALLS GO BELOW THIS LINE ---
+        self.build_case_tab()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -75,6 +76,52 @@ class VaultApp:
             raise VaultError("No case is open. Create or open a case first.")
         return self.case
 
+    def build_case_tab(self):
+        """Create the Case tab."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Case")
+        ttk.Button(tab, text="New case...", command=self.new_case).pack(
+            anchor="w", padx=10, pady=10)
+        self.case_info = tk.Text(tab, height=12, state="disabled")
+        self.case_info.pack(fill="both", expand=True, padx=10, pady=10)
+        self.refreshers.append(self.refresh_case_tab)
+
+    def refresh_case_tab(self):
+        """Update the header and the case details text."""
+        if self.case is None:
+            self.header.config(text="No case open")
+            text = "Create a new case or open a saved one from the File menu."
+        else:
+            case = self.case
+            self.header.config(text=f"Case {case.case_id}: {case.title}")
+            text = (f"Case ID: {case.case_id}\nTitle: {case.title}\n"
+                    f"Investigator: {case.investigator}\nCreated: {case.created_at}\n"
+                    f"Evidence items: {len(case.evidence)}\n"
+                    f"Custody entries: {len(case.custody_log)}\n"
+                    f"Timeline events: {len(case.events)}")
+        self.case_info.config(state="normal")
+        self.case_info.delete("1.0", tk.END)
+        self.case_info.insert("1.0", text)
+        self.case_info.config(state="disabled")
+
+    @guarded
+    def new_case(self):
+        """Ask for case details and create a case."""
+        case_id = simpledialog.askstring("New case", "Case ID:", parent=self.root)
+        if case_id is None:
+            return
+        title = simpledialog.askstring("New case", "Title:", parent=self.root)
+        if title is None:
+            return
+        investigator = simpledialog.askstring("New case", "Investigator:", parent=self.root)
+        if investigator is None:
+            return
+        self.case = case_manager.create_case(case_id, title, investigator)
+        self.case_path = None
+        self.filtered = False
+        self.refresh_all()
+        self.set_status(f"Created case {self.case.case_id}.")
+    
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
 
