@@ -61,6 +61,7 @@ class VaultApp:
         # --- NEW PANEL CALLS GO BELOW THIS LINE ---
         self.build_case_tab()
         self.build_evidence_tab()
+        self.build_timeline_tab()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -247,6 +248,83 @@ class VaultApp:
             case_manager.delete_evidence(self.case, evidence_id)
             self.refresh_all()
             self.set_status("Evidence deleted.")
+
+    def build_timeline_tab(self):
+        """Create the Timeline tab with a table of events."""
+        self.timeline_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.timeline_tab, text="Timeline")
+        buttons = ttk.Frame(self.timeline_tab)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(
+            buttons, text="Import events...", command=self.import_events_dialog
+        ).pack(side="left", padx=5)
+        self.timeline_body = ttk.Frame(self.timeline_tab)
+        self.timeline_body.pack(fill="both", expand=True, padx=10, pady=10)
+        columns = ("time", "source", "evidence", "description")
+        self.timeline_tree = ttk.Treeview(
+            self.timeline_body, columns=columns, show="headings"
+        )
+        for name, width in zip(columns, (190, 100, 90, 620)):
+            self.timeline_tree.heading(name, text=name.upper())
+            self.timeline_tree.column(name, width=width)
+        scroll = ttk.Scrollbar(self.timeline_body, command=self.timeline_tree.yview)
+        self.timeline_tree.config(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.timeline_tree.pack(fill="both", expand=True)
+        self.refreshers.append(self.refresh_timeline_tab)
+
+    def refresh_timeline_tab(self):
+        """Redraw the timeline table (all events, or the current filter)."""
+        self.timeline_tree.delete(*self.timeline_tree.get_children())
+        if self.case is None:
+            return
+        events = self.view_events if self.filtered else self.case.events
+        for event in events:
+            self.timeline_tree.insert(
+                "",
+                tk.END,
+                values=(
+                    event.timestamp,
+                    event.source,
+                    event.evidence_id,
+                    event.description,
+                ),
+            )
+
+    @guarded
+    def import_events_dialog(self):
+        """Pick a log file and import its events."""
+        self.require_case()
+        path = filedialog.askopenfilename(
+            title="Choose a log file",
+            filetypes=[("Logs", "*.csv *.txt *.log"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        default_name = os.path.splitext(os.path.basename(path))[0]
+        source = simpledialog.askstring(
+            "Source name",
+            "Name for this source:",
+            parent=self.root,
+            initialvalue=default_name,
+        )
+        if source is None:
+            return
+        evidence_id = (
+            simpledialog.askstring(
+                "Evidence ID",
+                "Evidence ID it came from (leave blank for none):",
+                parent=self.root,
+            )
+            or ""
+        )
+        if evidence_id.strip():
+            case_manager.get_evidence(self.case, evidence_id)
+        events, skipped = timeline.import_events(path, source, evidence_id.strip())
+        added = timeline.add_events(self.case, events)
+        self.filtered = False
+        self.refresh_all()
+        self.set_status(f"Imported {added} events, skipped {skipped} bad lines.")
 
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
