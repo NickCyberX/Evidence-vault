@@ -60,6 +60,7 @@ class VaultApp:
         self.status.pack(fill="x", padx=10, pady=5)
         # --- NEW PANEL CALLS GO BELOW THIS LINE ---
         self.build_case_tab()
+        self.build_evidence_tab()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -81,7 +82,8 @@ class VaultApp:
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Case")
         ttk.Button(tab, text="New case...", command=self.new_case).pack(
-            anchor="w", padx=10, pady=10)
+            anchor="w", padx=10, pady=10
+        )
         self.case_info = tk.Text(tab, height=12, state="disabled")
         self.case_info.pack(fill="both", expand=True, padx=10, pady=10)
         self.refreshers.append(self.refresh_case_tab)
@@ -94,11 +96,13 @@ class VaultApp:
         else:
             case = self.case
             self.header.config(text=f"Case {case.case_id}: {case.title}")
-            text = (f"Case ID: {case.case_id}\nTitle: {case.title}\n"
-                    f"Investigator: {case.investigator}\nCreated: {case.created_at}\n"
-                    f"Evidence items: {len(case.evidence)}\n"
-                    f"Custody entries: {len(case.custody_log)}\n"
-                    f"Timeline events: {len(case.events)}")
+            text = (
+                f"Case ID: {case.case_id}\nTitle: {case.title}\n"
+                f"Investigator: {case.investigator}\nCreated: {case.created_at}\n"
+                f"Evidence items: {len(case.evidence)}\n"
+                f"Custody entries: {len(case.custody_log)}\n"
+                f"Timeline events: {len(case.events)}"
+            )
         self.case_info.config(state="normal")
         self.case_info.delete("1.0", tk.END)
         self.case_info.insert("1.0", text)
@@ -113,7 +117,9 @@ class VaultApp:
         title = simpledialog.askstring("New case", "Title:", parent=self.root)
         if title is None:
             return
-        investigator = simpledialog.askstring("New case", "Investigator:", parent=self.root)
+        investigator = simpledialog.askstring(
+            "New case", "Investigator:", parent=self.root
+        )
         if investigator is None:
             return
         self.case = case_manager.create_case(case_id, title, investigator)
@@ -121,7 +127,127 @@ class VaultApp:
         self.filtered = False
         self.refresh_all()
         self.set_status(f"Created case {self.case.case_id}.")
-    
+
+    def build_evidence_tab(self):
+        """Create the Evidence tab."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Evidence")
+        buttons = ttk.Frame(tab)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(
+            buttons, text="Register evidence...", command=self.open_register_form
+        ).pack(side="left", padx=5)
+        ttk.Button(
+            buttons, text="Edit description...", command=self.edit_selected_evidence
+        ).pack(side="left", padx=5)
+        ttk.Button(
+            buttons, text="Delete selected", command=self.delete_selected_evidence
+        ).pack(side="left", padx=5)
+        columns = ("id", "description", "source", "collector", "sha256")
+        self.evidence_tree = ttk.Treeview(tab, columns=columns, show="headings")
+        for name, width in zip(columns, (80, 280, 140, 120, 360)):
+            self.evidence_tree.heading(name, text=name.upper())
+            self.evidence_tree.column(name, width=width)
+        self.evidence_tree.pack(fill="both", expand=True, padx=10, pady=10)
+        self.refreshers.append(self.refresh_evidence_tab)
+
+    def refresh_evidence_tab(self):
+        """Redraw the evidence table."""
+        self.evidence_tree.delete(*self.evidence_tree.get_children())
+        if self.case is None:
+            return
+        for item in sorted(self.case.evidence.values(), key=lambda i: i.evidence_id):
+            self.evidence_tree.insert(
+                "",
+                tk.END,
+                iid=item.evidence_id,
+                values=(
+                    item.evidence_id,
+                    item.description,
+                    item.source,
+                    item.collector,
+                    item.sha256,
+                ),
+            )
+
+    @guarded
+    def open_register_form(self):
+        """Open a form window for registering evidence."""
+        self.require_case()
+        win = tk.Toplevel(self.root)
+        win.title("Register evidence")
+        labels = ["Evidence ID", "Description", "Source", "Collector", "File path"]
+        entries = {}
+        for row, label in enumerate(labels):
+            ttk.Label(win, text=label).grid(
+                row=row, column=0, sticky="w", padx=8, pady=4
+            )
+            entry = ttk.Entry(win, width=50)
+            entry.grid(row=row, column=1, padx=8, pady=4)
+            entries[label] = entry
+
+        def browse():
+            path = filedialog.askopenfilename(parent=win)
+            if path:
+                entries["File path"].delete(0, tk.END)
+                entries["File path"].insert(0, path)
+
+        def submit():
+            try:
+                chain.register_and_log(
+                    self.case,
+                    entries["Evidence ID"].get(),
+                    entries["Description"].get(),
+                    entries["Source"].get(),
+                    entries["Collector"].get(),
+                    entries["File path"].get(),
+                )
+            except VaultError as err:
+                messagebox.showerror("Cannot register", str(err), parent=win)
+                return
+            win.destroy()
+            self.refresh_all()
+            self.set_status("Evidence registered.")
+
+        ttk.Button(win, text="Browse...", command=browse).grid(row=4, column=2, padx=4)
+        ttk.Button(win, text="Register", command=submit).grid(
+            row=5, column=1, sticky="e", padx=8, pady=10
+        )
+
+    def selected_evidence_id(self):
+        """Return the ID selected in the evidence table."""
+        selection = self.evidence_tree.selection()
+        if not selection:
+            raise VaultError("Click an evidence row first.")
+        return selection[0]
+
+    @guarded
+    def edit_selected_evidence(self):
+        """Change the description of the selected evidence."""
+        self.require_case()
+        evidence_id = self.selected_evidence_id()
+        new_text = simpledialog.askstring(
+            "Edit description",
+            "New description:",
+            parent=self.root,
+            initialvalue=self.case.evidence[evidence_id].description,
+        )
+        if new_text is None:
+            return
+        case_manager.edit_evidence_description(self.case, evidence_id, new_text)
+        self.refresh_all()
+        self.set_status("Description updated.")
+
+    @guarded
+    def delete_selected_evidence(self):
+        """Delete the selected evidence after asking."""
+        self.require_case()
+        evidence_id = self.selected_evidence_id()
+        if messagebox.askyesno("Delete", f"Delete evidence {evidence_id}?"):
+            case_manager.delete_evidence(self.case, evidence_id)
+            self.refresh_all()
+            self.set_status("Evidence deleted.")
+
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
 
