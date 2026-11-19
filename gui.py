@@ -62,6 +62,8 @@ class VaultApp:
         self.build_case_tab()
         self.build_evidence_tab()
         self.build_timeline_tab()
+        self.build_integrity_widgets()
+        self.build_custody_tab()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -325,6 +327,92 @@ class VaultApp:
         self.filtered = False
         self.refresh_all()
         self.set_status(f"Imported {added} events, skipped {skipped} bad lines.")
+
+    def build_integrity_widgets(self):
+        """Add the Verify button and the PASS/FAIL label to the top bar."""
+        ttk.Button(
+            self.top, text="Verify integrity", command=self.verify_integrity
+        ).pack(side="right", padx=5)
+        self.integrity_label = tk.Label(
+            self.top,
+            text="Integrity: not checked",
+            fg="gray",
+            font=("Arial", 12, "bold"),
+        )
+        self.integrity_label.pack(side="right", padx=10)
+        self.refreshers.append(self.reset_integrity_label)
+
+    def reset_integrity_label(self):
+        """Show 'not checked' (anything may have changed since the last check)."""
+        self.integrity_label.config(text="Integrity: not checked", fg="gray")
+
+    @guarded
+    def verify_integrity(self):
+        """Run the integrity checks and show the result."""
+        ok, messages = chain.check_integrity(self.require_case())
+        if ok:
+            self.integrity_label.config(text="Integrity: PASS", fg="green")
+            messagebox.showinfo("Integrity PASS", "\n".join(messages))
+        else:
+            self.integrity_label.config(text="Integrity: FAIL", fg="red")
+            messagebox.showwarning("Integrity FAIL", "\n".join(messages))
+        self.set_status("Integrity check finished.")
+
+    def build_custody_tab(self):
+        """Create the Custody log tab."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Custody log")
+        buttons = ttk.Frame(tab)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(
+            buttons, text="Record custody action...", command=self.record_custody_action
+        ).pack(side="left", padx=5)
+        columns = ("no", "evidence", "action", "actor", "time")
+        self.custody_tree = ttk.Treeview(tab, columns=columns, show="headings")
+        for name, width in zip(columns, (50, 90, 200, 150, 220)):
+            self.custody_tree.heading(name, text=name.upper())
+            self.custody_tree.column(name, width=width)
+        self.custody_tree.pack(fill="both", expand=True, padx=10, pady=10)
+        self.refreshers.append(self.refresh_custody_tab)
+
+    def refresh_custody_tab(self):
+        """Redraw the custody table."""
+        self.custody_tree.delete(*self.custody_tree.get_children())
+        if self.case is None:
+            return
+        for entry in self.case.custody_log:
+            self.custody_tree.insert(
+                "",
+                tk.END,
+                values=(
+                    entry.entry_id,
+                    entry.evidence_id,
+                    entry.action,
+                    entry.actor,
+                    entry.timestamp,
+                ),
+            )
+
+    @guarded
+    def record_custody_action(self):
+        """Ask for the details and add a custody entry."""
+        self.require_case()
+        evidence_id = simpledialog.askstring(
+            "Custody", "Evidence ID (leave blank for the whole case):", parent=self.root
+        )
+        if evidence_id is None:
+            return
+        action = simpledialog.askstring(
+            "Custody", "Action (e.g. TRANSFERRED):", parent=self.root
+        )
+        if action is None:
+            return
+        actor = simpledialog.askstring("Custody", "Who did it:", parent=self.root)
+        if actor is None:
+            return
+        chain.append_entry(self.case, evidence_id, action, actor)
+        self.refresh_all()
+        self.set_status("Custody entry recorded.")
 
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
