@@ -64,6 +64,7 @@ class VaultApp:
         self.build_timeline_tab()
         self.build_integrity_widgets()
         self.build_custody_tab()
+        self.build_search_bar()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -413,6 +414,118 @@ class VaultApp:
         chain.append_entry(self.case, evidence_id, action, actor)
         self.refresh_all()
         self.set_status("Custody entry recorded.")
+
+    def build_search_bar(self):
+        """Add search, filter, time-window and cluster controls to the Timeline tab."""
+        bar = ttk.Frame(self.timeline_tab)
+        bar.pack(fill="x", padx=10, before=self.timeline_body)
+        self.search_var = tk.StringVar()
+        self.source_var = tk.StringVar()
+        self.evidence_var = tk.StringVar()
+        self.start_var = tk.StringVar()
+        self.end_var = tk.StringVar()
+        row1 = ttk.Frame(bar)
+        row1.pack(fill="x", pady=2)
+        ttk.Label(row1, text="Keywords:").pack(side="left")
+        ttk.Entry(row1, textvariable=self.search_var, width=25).pack(
+            side="left", padx=4
+        )
+        ttk.Button(row1, text="Search", command=self.run_search).pack(
+            side="left", padx=4
+        )
+        ttk.Label(row1, text="Source:").pack(side="left", padx=(15, 0))
+        ttk.Entry(row1, textvariable=self.source_var, width=12).pack(
+            side="left", padx=4
+        )
+        ttk.Label(row1, text="Evidence ID:").pack(side="left")
+        ttk.Entry(row1, textvariable=self.evidence_var, width=12).pack(
+            side="left", padx=4
+        )
+        ttk.Button(row1, text="Filter", command=self.run_filter).pack(
+            side="left", padx=4
+        )
+        row2 = ttk.Frame(bar)
+        row2.pack(fill="x", pady=2)
+        ttk.Label(row2, text="From:").pack(side="left")
+        ttk.Entry(row2, textvariable=self.start_var, width=26).pack(side="left", padx=4)
+        ttk.Label(row2, text="To:").pack(side="left")
+        ttk.Entry(row2, textvariable=self.end_var, width=26).pack(side="left", padx=4)
+        ttk.Button(row2, text="Time window", command=self.run_window).pack(
+            side="left", padx=4
+        )
+        ttk.Button(row2, text="Find bursts...", command=self.run_clusters).pack(
+            side="left", padx=4
+        )
+        ttk.Button(row2, text="Show all", command=self.show_all).pack(
+            side="left", padx=4
+        )
+
+    def show_results(self, events, label):
+        """Display a filtered list of events in the timeline table."""
+        self.view_events = events
+        self.filtered = True
+        self.refresh_timeline_tab()
+        self.set_status(f"{label}: {len(events)} events shown.")
+
+    @guarded
+    def run_search(self):
+        """Keyword search."""
+        case = self.require_case()
+        self.show_results(
+            self.searcher.search(case.events, self.search_var.get()), "Search"
+        )
+
+    @guarded
+    def run_filter(self):
+        """Filter by source and evidence ID."""
+        case = self.require_case()
+        self.show_results(
+            search.filter_events(
+                case.events, self.source_var.get(), self.evidence_var.get()
+            ),
+            "Filter",
+        )
+
+    @guarded
+    def run_window(self):
+        """Show events between two times."""
+        case = self.require_case()
+        self.show_results(
+            search.events_in_window(
+                case.events, self.start_var.get(), self.end_var.get()
+            ),
+            "Time window",
+        )
+
+    @guarded
+    def run_clusters(self):
+        """Ask for a gap and show the bursts in a pop-up window."""
+        case = self.require_case()
+        gap = simpledialog.askinteger(
+            "Bursts", "Maximum gap in seconds:", parent=self.root, minvalue=0
+        )
+        if gap is None:
+            return
+        groups = search.cluster_events(case.events, gap)
+        win = tk.Toplevel(self.root)
+        win.title(f"Bursts (gap {gap}s)")
+        box = tk.Text(win, width=110, height=30)
+        box.pack(fill="both", expand=True)
+        for number, group in enumerate(groups, start=1):
+            box.insert(tk.END, f"--- Group {number}: {len(group)} events ---\n")
+            for event in group:
+                box.insert(
+                    tk.END,
+                    f"{event.timestamp} | {event.source} | {event.description}\n",
+                )
+            box.insert(tk.END, "\n")
+        box.config(state="disabled")
+
+    def show_all(self):
+        """Remove any filter."""
+        self.filtered = False
+        self.refresh_timeline_tab()
+        self.set_status("Showing all events.")
 
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
