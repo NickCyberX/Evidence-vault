@@ -34,3 +34,23 @@ def generate_text_report(case: Case) -> str:
         lines.append(f"  First: {case.events[0].timestamp}")
         lines.append(f"  Last:  {case.events[-1].timestamp}")
     return "\n".join(lines)
+
+
+def export_timeline_csv(case: Case, path: str) -> int:
+    """Write the timeline to a CSV file. Returns the number of rows written."""
+    try:
+        with open(path, "w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["timestamp", "source", "evidence_id", "description"])
+            for event in case.events:
+                writer.writerow(
+                    [
+                        event.timestamp,
+                        event.source,
+                        event.evidence_id,
+                        event.description,
+                    ]
+                )
+    except OSError as err:
+        raise StorageError(f"Could not write '{path}': {err}") from err
+    return len(case.events)
