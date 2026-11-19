@@ -65,6 +65,7 @@ class VaultApp:
         self.build_integrity_widgets()
         self.build_custody_tab()
         self.build_search_bar()
+        self.build_file_menu()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -526,6 +527,60 @@ class VaultApp:
         self.filtered = False
         self.refresh_timeline_tab()
         self.set_status("Showing all events.")
+
+    def build_file_menu(self):
+        """Add New / Open / Save / Import items to the File menu."""
+        self.file_menu.insert_command(0, label="New case...", command=self.new_case)
+        self.file_menu.insert_command(1, label="Open case...", command=self.open_case)
+        self.file_menu.insert_command(2, label="Save case", command=self.save_case)
+        self.file_menu.insert_command(
+            3, label="Save case as...", command=self.save_case_as
+        )
+        self.file_menu.insert_command(
+            4, label="Import events...", command=self.import_events_dialog
+        )
+        self.file_menu.insert_separator(5)
+
+    @guarded
+    def open_case(self):
+        """Load a case from a JSON file."""
+        path = filedialog.askopenfilename(
+            title="Open case",
+            filetypes=[("Case files", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        self.case = storage.load_case(path)
+        self.case_path = path
+        self.filtered = False
+        self.refresh_all()
+        self.set_status(f"Opened {path}.")
+
+    @guarded
+    def save_case_as(self):
+        """Save the case to a file the user chooses."""
+        case = self.require_case()
+        path = filedialog.asksaveasfilename(
+            title="Save case",
+            defaultextension=".json",
+            initialfile=f"{case.case_id}.json",
+            filetypes=[("Case files", "*.json")],
+        )
+        if not path:
+            return
+        storage.save_case(case, path)
+        self.case_path = path
+        self.set_status(f"Saved to {path}.")
+
+    @guarded
+    def save_case(self):
+        """Save to the current file, or ask for one."""
+        self.require_case()
+        if self.case_path is None:
+            self.save_case_as()
+            return
+        storage.save_case(self.case, self.case_path)
+        self.set_status(f"Saved to {self.case_path}.")
 
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
