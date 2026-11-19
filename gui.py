@@ -16,7 +16,7 @@ from core.errors import VaultError
 
 
 def guarded(method):
-    """Show a message box instead of crashing when a VaultError happens."""
+    """Show a message box instead of crashing, for every kind of error."""
 
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -25,6 +25,9 @@ def guarded(method):
         except VaultError as err:
             messagebox.showerror("Problem", str(err))
             self.set_status(f"Error: {err}")
+        except Exception as err:  # last safety net so the window never dies
+            messagebox.showerror("Unexpected error", f"{type(err).__name__}: {err}")
+            self.set_status("Unexpected error.")
         return None
 
     return wrapper
