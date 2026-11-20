@@ -233,6 +233,23 @@ def action_load():
 ACTIONS["14"] = ("Save case to a file", action_save)
 ACTIONS["15"] = ("Load case from a file", action_load)
 
+
+def action_report():
+    """Menu: print the text report."""
+    print(report.generate_text_report(need_case()))
+
+
+def action_export_csv():
+    """Menu: export the timeline as a CSV file."""
+    case = need_case()
+    path = ask("CSV file to write [timeline.csv]: ") or "timeline.csv"
+    rows = report.export_timeline_csv(case, path)
+    print(f"Wrote {rows} events to {path}.")
+
+
+ACTIONS["16"] = ("Show text report", action_report)
+ACTIONS["17"] = ("Export timeline to CSV", action_export_csv)
+
 # ===== NEW COMMANDS GO ABOVE THIS LINE =====
 
 
