@@ -69,6 +69,7 @@ class VaultApp:
         self.build_custody_tab()
         self.build_search_bar()
         self.build_file_menu()
+        self.build_report_tab()
 
     def set_status(self, text):
         """Show a message in the bottom bar."""
@@ -584,6 +585,46 @@ class VaultApp:
             return
         storage.save_case(self.case, self.case_path)
         self.set_status(f"Saved to {self.case_path}.")
+
+    def build_report_tab(self):
+        """Create the Report tab."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Report")
+        buttons = ttk.Frame(tab)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(buttons, text="Generate report", command=self.show_report).pack(
+            side="left", padx=5
+        )
+        ttk.Button(
+            buttons, text="Export timeline to CSV...", command=self.export_csv
+        ).pack(side="left", padx=5)
+        self.report_box = tk.Text(tab, state="disabled")
+        self.report_box.pack(fill="both", expand=True, padx=10, pady=10)
+
+    @guarded
+    def show_report(self):
+        """Fill the report box with the text report."""
+        text = report.generate_text_report(self.require_case())
+        self.report_box.config(state="normal")
+        self.report_box.delete("1.0", tk.END)
+        self.report_box.insert("1.0", text)
+        self.report_box.config(state="disabled")
+        self.set_status("Report generated.")
+
+    @guarded
+    def export_csv(self):
+        """Save the timeline as a CSV file."""
+        case = self.require_case()
+        path = filedialog.asksaveasfilename(
+            title="Export timeline",
+            defaultextension=".csv",
+            initialfile="timeline.csv",
+            filetypes=[("CSV files", "*.csv")],
+        )
+        if not path:
+            return
+        rows = report.export_timeline_csv(case, path)
+        self.set_status(f"Wrote {rows} events to {path}.")
 
     # ===== NEW METHODS GO ABOVE THIS LINE =====
 
